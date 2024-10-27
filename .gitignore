@@ -21,9 +21,6 @@
 # Módulos e dependências
 /vendor/
 
-# Arquivo do Módulo de Dependências
-go.sum
-
 # Logs
 *.log
 

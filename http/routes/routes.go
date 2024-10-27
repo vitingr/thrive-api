@@ -2,6 +2,7 @@ package routes
 
 import (
 	"log"
+	"main/http/routes/groups"
 	"main/http/routes/users"
 	"net/http"
 
@@ -15,6 +16,10 @@ func HandleRequest() {
 	// User routes
 	userSubrouter := r.PathPrefix("/users").Subrouter()
 	userRoutes.RegisterUserRoutes(userSubrouter)
+
+	// Group routes
+	groupSubrouter := r.PathPrefix("/groups").Subrouter()
+	groupRoutes.RegisterGroupRoutes(groupSubrouter)
 
 	log.Fatal(http.ListenAndServe(":8080", handlers.CORS(handlers.AllowedHeaders([]string{"*"}))(r)))
 }

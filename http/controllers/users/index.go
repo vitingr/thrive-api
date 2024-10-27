@@ -16,13 +16,15 @@ func Home(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	var users []models.Group
+	fmt.Println("Buscando todos os usuários...")
+	var users []models.User
 
 	database.DB.Find(&users)
 	json.NewEncoder(w).Encode(users)
 }
 
 func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Buscando usuário por email...")
 	vars := mux.Vars(r)
 	email := vars["email"]
 	var currentUser models.User
@@ -32,6 +34,7 @@ func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserById(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Buscando usuário por ID...")
 	vars := mux.Vars(r)
 	id := vars["id"]
 	var currentUser models.User
@@ -41,6 +44,7 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Criando novo usuário...")
 	var newUser models.User
 	json.NewDecoder(r.Body).Decode(&newUser)
 	database.DB.Create(&newUser)

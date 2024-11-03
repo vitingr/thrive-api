@@ -4,6 +4,7 @@ import (
 	"log"
 	"main/http/routes/groups"
 	"main/http/routes/users"
+	"main/http/routes/posts"
 	"net/http"
 
 	"github.com/gorilla/handlers"
@@ -20,6 +21,10 @@ func HandleRequest() {
 	// Group routes
 	groupSubrouter := r.PathPrefix("/groups").Subrouter()
 	groupRoutes.RegisterGroupRoutes(groupSubrouter)
+
+	// Post routes
+	postSubrouter := r.PathPrefix("/posts").Subrouter()
+	postRoutes.RegisterPostRoutes(postSubrouter)
 
 	log.Fatal(http.ListenAndServe(":8080", handlers.CORS(handlers.AllowedHeaders([]string{"*"}))(r)))
 }

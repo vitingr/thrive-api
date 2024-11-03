@@ -10,11 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Thrive default API route")
-	fmt.Println("testando")
-}
-
 func GetAllGroups(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Buscando todos os grupos...")
 	var groups []models.Group

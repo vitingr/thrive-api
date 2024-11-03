@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"main/database"
 	"main/models"
 	"net/http"
@@ -10,13 +12,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Thrive default API route")
-	fmt.Println("testando")
-}
-
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Buscando todos os usuários...")
 	var users []models.User
 
 	database.DB.Find(&users)
@@ -24,13 +20,18 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Buscando usuário por email...")
-	vars := mux.Vars(r)
-	email := vars["email"]
-	var currentUser models.User
-	database.DB.First(&currentUser, email)
+    vars := mux.Vars(r)
+    email := vars["email"]
+    var currentUser models.User
 
-	json.NewEncoder(w).Encode(currentUser)
+    result := database.DB.Where("email = ?", email).First(&currentUser)
+
+    if result.Error != nil {
+        http.Error(w, "User not found", http.StatusNotFound)
+        return
+    }
+
+    json.NewEncoder(w).Encode(currentUser)
 }
 
 func GetUserById(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +45,21 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Criando novo usuário...")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		return
+	}
 	var newUser models.User
-	json.NewDecoder(r.Body).Decode(&newUser)
+
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	err = json.NewDecoder(r.Body).Decode(&newUser)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
 	database.DB.Create(&newUser)
 	json.NewEncoder(w).Encode(newUser)
 }

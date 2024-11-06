@@ -23,8 +23,8 @@ func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
     email := vars["email"]
     var currentUser models.User
-
-    result := database.DB.Where("email = ?", email).First(&currentUser)
+		
+    result := database.DB.Raw("SELECT * FROM users WHERE email = ? LIMIT 1", email).Scan(&currentUser)
 
     if result.Error != nil {
         http.Error(w, "User not found", http.StatusNotFound)

@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"main/database"
 	"main/models"
 	"net/http"
@@ -42,22 +44,28 @@ func GetMyPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreatePost(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int)
-	var post models.Post
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		return
+	}
+	
+	var newPost models.Post
 
-	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	err = json.NewDecoder(r.Body).Decode(&newPost)
+	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	post.CreatorId = userID > 0
-
-	result := database.DB.Create(&post)
+	result := database.DB.Create(&newPost)
 	if result.Error != nil {
 		http.Error(w, "Error creating post", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(post)
+	json.NewEncoder(w).Encode(newPost)
 }

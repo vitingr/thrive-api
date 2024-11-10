@@ -9,6 +9,7 @@ type Group struct {
 	BackgroundPicture string `json:"background_picture"`
 	IsPrivate         bool   `json:"is_private"`
 	Followers         int    `json:"followers"`
+	Locale            int    `json:"string"`
 	Members           int    `json:"members"`
 }
 

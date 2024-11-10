@@ -3,7 +3,6 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"main/database"
 	"main/models"
@@ -34,8 +33,22 @@ func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(currentUser)
 }
 
+func GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	email := vars["google_id"]
+	var currentUser models.User
+	
+	result := database.DB.Raw("SELECT * FROM users WHERE google_id = ? LIMIT 1", email).Scan(&currentUser)
+
+	if result.Error != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+	}
+
+	json.NewEncoder(w).Encode(currentUser)
+}
+
 func GetUserById(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Buscando usuário por ID...")
 	vars := mux.Vars(r)
 	id := vars["id"]
 	var currentUser models.User

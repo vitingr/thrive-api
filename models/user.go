@@ -10,6 +10,7 @@ type User struct {
 	BackgroundPicture string  `json:"background_picture"`
 	Followers         int     `json:"followers"`
 	Following         int     `json:"following"`
+	Locale            string  `json:"locale"`
 	GoogleID          *string `json:"google_id,omitempty"`
 }
 

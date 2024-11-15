@@ -73,6 +73,28 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.DB.Create(&newUser)
-	json.NewEncoder(w).Encode(newUser)
+	query := `
+		INSERT INTO users (username, firstname, lastname, email, profile_picture, background_picture, followers, following, locale, google_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	result := database.DB.Exec(query, newUser.Username, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.ProfilePicture, newUser.BackgroundPicture, newUser.Followers, newUser.Following, newUser.Locale, newUser.GoogleID)
+
+	if result.Error != nil {
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		Data  *models.User `json:"data,omitempty"`
+		Meta  interface{}   `json:"meta,omitempty"`
+		Error string        `json:"error,omitempty"`
+	}{
+		Data:  &newUser,
+		Meta:  nil, 
+		Error: "",  
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }

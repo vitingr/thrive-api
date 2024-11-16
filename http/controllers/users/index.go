@@ -6,6 +6,7 @@ import (
 	"io"
 	"main/database"
 	"main/models"
+	"main/utils/response"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -19,33 +20,33 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    email := vars["email"]
-    var currentUser models.User
-		
-    result := database.DB.Raw("SELECT * FROM users WHERE email = ? LIMIT 1", email).Scan(&currentUser)
+	vars := mux.Vars(r)
+	email := vars["email"]
+	var currentUser models.User
 
-    if result.Error != nil {
-        http.Error(w, "User not found", http.StatusNotFound)
-        return
-    }
+	result := database.DB.Where("email = ?", email).First(&currentUser)
 
-    json.NewEncoder(w).Encode(currentUser)
+	if result.Error != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	utils.SendResponse(w, http.StatusOK, currentUser, nil, "")
 }
 
 func GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	email := vars["google_id"]
+	googleId := vars["google_id"]
 	var currentUser models.User
-	
-	result := database.DB.Raw("SELECT * FROM users WHERE google_id = ? LIMIT 1", email).Scan(&currentUser)
+
+	result := database.DB.Where("email = ?", googleId).First(&currentUser)
 
 	if result.Error != nil {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
 	}
 
-	json.NewEncoder(w).Encode(currentUser)
+	utils.SendResponse(w, http.StatusOK, currentUser, nil, "")
 }
 
 func GetUserById(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +55,7 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 	var currentUser models.User
 	database.DB.First(&currentUser, id)
 
-	json.NewEncoder(w).Encode(currentUser)
+	utils.SendResponse(w, http.StatusOK, &currentUser, nil, "")
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -74,9 +75,9 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := `
-		INSERT INTO users (username, firstname, lastname, email, profile_picture, background_picture, followers, following, locale, google_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`
+    INSERT INTO users (username, firstname, lastname, email, profile_picture, background_picture, followers, following, locale, google_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`
 	result := database.DB.Exec(query, newUser.Username, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.ProfilePicture, newUser.BackgroundPicture, newUser.Followers, newUser.Following, newUser.Locale, newUser.GoogleID)
 
 	if result.Error != nil {
@@ -84,17 +85,5 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := struct {
-		Data  *models.User `json:"data,omitempty"`
-		Meta  interface{}   `json:"meta,omitempty"`
-		Error string        `json:"error,omitempty"`
-	}{
-		Data:  &newUser,
-		Meta:  nil, 
-		Error: "",  
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	utils.SendResponse(w, http.StatusOK, &newUser, nil, "")
 }

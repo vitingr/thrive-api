@@ -3,8 +3,8 @@ package routes
 import (
 	"log"
 	"main/http/routes/groups"
-	"main/http/routes/users"
 	"main/http/routes/posts"
+	"main/http/routes/users"
 	"net/http"
 
 	"github.com/gorilla/handlers"
@@ -26,5 +26,14 @@ func HandleRequest() {
 	postSubrouter := r.PathPrefix("/posts").Subrouter()
 	postRoutes.RegisterPostRoutes(postSubrouter)
 
-	log.Fatal(http.ListenAndServe(":8080", handlers.CORS(handlers.AllowedHeaders([]string{"*"}))(r)))
+	// Apply CORS options
+	corsOptions := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+	)
+
+	handler := corsOptions(r)
+
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }

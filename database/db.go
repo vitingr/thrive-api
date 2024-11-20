@@ -16,9 +16,11 @@ var (
 )
 
 func ConnectionWithDatabase() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file")
+	if os.Getenv("RENDER_ENVIRONMENT") != "production" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("Warning: .env file not found, relying on environment variables")
+		}
 	}
 
 	stringConnection := os.Getenv("DATABASE_URL")
@@ -26,8 +28,8 @@ func ConnectionWithDatabase() {
 		log.Fatal("DATABASE_URL is not set in the environment")
 	}
 
-	DB, err = gorm.Open(postgres.Open(stringConnection), &gorm.Config{
-		PrepareStmt: true, 
+	DB, err := gorm.Open(postgres.Open(stringConnection), &gorm.Config{
+		PrepareStmt: true,
 		Logger:      logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
@@ -39,11 +41,9 @@ func ConnectionWithDatabase() {
 		log.Fatalf("Failed to get raw SQLDB from GORM: %v", err)
 	}
 
-  database.Exec("DEALLOCATE ALL")
-
 	database.SetMaxOpenConns(20)
 	database.SetMaxIdleConns(10)
-	database.SetConnMaxLifetime(time.Hour) 
+	database.SetConnMaxLifetime(time.Hour)
 
 	if err := database.Ping(); err != nil {
 		log.Fatalf("Error pinging the database: %v", err)

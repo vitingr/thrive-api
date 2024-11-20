@@ -96,3 +96,88 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	utils.SendResponse(w, http.StatusOK, &newPost, nil, "")
 }
+
+func LikePost(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		UserId int `json:"user"`
+		PostId int `json:"postId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var post models.Post
+	result := database.DB.First(&post, payload.PostId)
+	if result.Error != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	var existingLike models.Like
+	likeCheck := database.DB.Where("user_id = ? AND post_id = ?", payload.UserId, payload.PostId).First(&existingLike)
+	if likeCheck.Error == nil {
+		http.Error(w, "User has already liked this post", http.StatusBadRequest)
+		return
+	}
+
+	newLike := models.Like{
+		UserId: payload.UserId,
+		PostId: payload.PostId,
+	}
+
+	if err := database.DB.Create(&newLike).Error; err != nil {
+		http.Error(w, "Failed to like post", http.StatusInternalServerError)
+		return
+	}
+
+	post.NumberLikes++
+	if err := database.DB.Save(&post).Error; err != nil {
+		http.Error(w, "Failed to update post like count", http.StatusInternalServerError)
+		return
+	}
+
+	utils.SendResponse(w, http.StatusOK, &post, nil, "Post liked successfully")
+}
+
+func DeslikePost(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		UserID int `json:"user"`
+		PostID int `json:"postId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	var post models.Post
+	result := database.DB.First(&post, payload.PostID)
+	if result.Error != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	var existingLike models.Like
+	likeCheck := database.DB.Where("user_id = ? AND post_id = ?", payload.UserID, payload.PostID).First(&existingLike)
+	if likeCheck.Error != nil {
+		http.Error(w, "User has not liked this post", http.StatusBadRequest)
+		return
+	}
+
+	if err := database.DB.Delete(&existingLike).Error; err != nil {
+		http.Error(w, "Failed to remove like", http.StatusInternalServerError)
+		return
+	}
+
+	if post.NumberLikes > 0 {
+		post.NumberLikes--
+		if err := database.DB.Save(&post).Error; err != nil {
+			http.Error(w, "Failed to update post like count", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	utils.SendResponse(w, http.StatusOK, &post, nil, "Post disliked successfully")
+}

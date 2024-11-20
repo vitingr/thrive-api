@@ -14,4 +14,5 @@ func RegisterUserRoutes(r *mux.Router) {
 	r.HandleFunc("/get-user-by-email/{email}", controllers.GetUserByEmail).Methods("GET")
 	r.HandleFunc("/get-user-by-google-id/{google_id}", controllers.GetUserById).Methods("GET")
 	r.HandleFunc("/get-user-by-id/{id}", controllers.GetUserById).Methods("GET")
+	r.HandleFunc("/update-user/{id}", controllers.UpdateUser).Methods("PUT")
 }

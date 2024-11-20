@@ -87,3 +87,37 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	utils.SendResponse(w, http.StatusOK, &newUser, nil, "")
 }
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		return
+	}
+
+	var updatedUser models.User
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+	err = json.NewDecoder(r.Body).Decode(&updatedUser)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	var existingUser models.User
+	result := database.DB.First(&existingUser, id)
+	if result.Error != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	result = database.DB.Model(&existingUser).Updates(updatedUser)
+	if result.Error != nil {
+		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		return
+	}
+
+	utils.SendResponse(w, http.StatusOK, &existingUser, nil, "")
+}

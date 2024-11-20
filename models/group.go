@@ -4,12 +4,12 @@ type Group struct {
 	Id                int    `json:"id"`
 	Name              string `json:"name"`
 	Description       string `json:"description"`
-	FavouriteActivity string `json:"favourite_activity"`
+	Activities        string `json:"activities"`
 	GroupPicture      string `json:"group_picture"`
 	BackgroundPicture string `json:"background_picture"`
 	IsPrivate         bool   `json:"is_private"`
 	Followers         int    `json:"followers"`
-	Locale            int    `json:"string"`
+	Locale            string `json:"locale"`
 	Members           int    `json:"members"`
 }
 

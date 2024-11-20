@@ -31,7 +31,8 @@ func GetAllPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &posts, nil, "")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
 }
 
 func GetMyPosts(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +92,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	if result.Error != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
-		return 
+		return
 	}
 
 	utils.SendResponse(w, http.StatusOK, &newPost, nil, "")

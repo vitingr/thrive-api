@@ -10,6 +10,8 @@ type Post struct {
 	CreatorId   int    `json:"creator_id"`
 	NumberLikes int    `json:"number_likes"`
 	Locale      string `json:"locale"`
+
+	Creator User `json:"creator" gorm:"foreignKey:CreatorId;references:ID"`
 }
 
 var Posts []Post

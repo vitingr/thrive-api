@@ -27,7 +27,7 @@ func ConnectionWithDatabase() {
 	}
 
 	DB, err = gorm.Open(postgres.Open(stringConnection), &gorm.Config{
-		PrepareStmt: false, 
+		PrepareStmt: true, 
 		Logger:      logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
@@ -39,10 +39,10 @@ func ConnectionWithDatabase() {
 		log.Fatalf("Failed to get raw SQLDB from GORM: %v", err)
 	}
 
-    database.Exec("DEALLOCATE ALL")
+  database.Exec("DEALLOCATE ALL")
 
-	database.SetMaxOpenConns(10)
-	database.SetMaxIdleConns(5)
+	database.SetMaxOpenConns(20)
+	database.SetMaxIdleConns(10)
 	database.SetConnMaxLifetime(time.Hour) 
 
 	if err := database.Ping(); err != nil {

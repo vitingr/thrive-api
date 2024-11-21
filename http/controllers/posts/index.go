@@ -56,6 +56,11 @@ func GetPostsByLanguage(w http.ResponseWriter, r *http.Request) {
 	userId := vars["userId"]
 	locale := vars["locale"]
 
+	if database.DB == nil {
+		http.Error(w, "Database connection is nil", http.StatusInternalServerError)
+		return
+	}
+
 	var posts []models.Post
 
 	result := database.DB.Preload("Creator").

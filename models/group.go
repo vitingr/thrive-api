@@ -11,6 +11,8 @@ type Group struct {
 	Followers         int    `json:"followers"`
 	Locale            string `json:"locale"`
 	Members           int    `json:"members"`
+
+	MembersList []User `gorm:"many2many:group_members;"`
 }
 
 var Groups []Group

@@ -61,11 +61,19 @@ func GetPostsByLanguage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var posts []models.Post
+	query := `
+    SELECT * 
+    FROM posts 
+    WHERE creator_id != $1 
+    AND locale = $2
+`
 
-	result := database.DB.Preload("Creator").
-		Where("creator_id != ? AND locale = ?", userId, locale).
-		Find(&posts)
+	var posts []models.Post
+	result := database.DB.Raw(query, userId, locale).Preload("Creator").Scan(&posts)
+	if result.Error != nil {
+		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
+		return
+	}
 
 	if result.Error != nil {
 		http.Error(w, "Error fetching posts", http.StatusInternalServerError)

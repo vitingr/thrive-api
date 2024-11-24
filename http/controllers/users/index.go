@@ -13,6 +13,7 @@ import (
 )
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	database.DB.Exec("DEALLOCATE ALL")
 	var users []models.User
 
 	database.DB.Find(&users)
@@ -20,6 +21,7 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	email := vars["email"]
 	var currentUser models.User
@@ -35,6 +37,7 @@ func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
+	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	googleId := vars["google_id"]
 	var currentUser models.User
@@ -50,6 +53,7 @@ func GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserById(w http.ResponseWriter, r *http.Request) {
+	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	id := vars["id"]
 	var currentUser models.User
@@ -59,6 +63,7 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
+	database.DB.Exec("DEALLOCATE ALL")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Unable to read request body", http.StatusBadRequest)
@@ -89,6 +94,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -120,4 +126,31 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.SendResponse(w, http.StatusOK, &existingUser, nil, "")
+}
+
+func GetSuggestedFriends(w http.ResponseWriter, r *http.Request) {
+	database.DB.Exec("DEALLOCATE ALL")
+	vars := mux.Vars(r)
+	userID := vars["id"]
+
+	var suggestedUsers []models.User
+
+	query := `
+    SELECT * 
+    FROM users 
+    WHERE id != $1 
+    AND id NOT IN (
+        SELECT following_id 
+        FROM followers 
+        WHERE follower_id = $2
+    )
+`
+
+	result := database.DB.Raw(query, userID, userID).Scan(&suggestedUsers)
+	if result.Error != nil {
+		http.Error(w, "Failed to fetch suggested friends", http.StatusInternalServerError)
+		return
+	}
+
+	utils.SendResponse(w, http.StatusOK, suggestedUsers, nil, "")
 }

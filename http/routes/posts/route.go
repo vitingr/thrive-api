@@ -14,4 +14,5 @@ func RegisterPostRoutes(r *mux.Router) {
 	r.HandleFunc("/get-posts-by-language/{userId}/{locale}", controllers.GetPostsByLanguage).Methods("GET")
 	r.HandleFunc("/like-post", controllers.LikePost).Methods("POST")
 	r.HandleFunc("/deslike-post", controllers.DeslikePost).Methods("POST")
+	r.HandleFunc("/like-status/{postId}/{userId}", controllers.HasUserLikedPost).Methods("GET")
 }

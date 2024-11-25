@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"main/database"
 	"main/models"
@@ -13,20 +13,20 @@ import (
 )
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("DEALLOCATE ALL")
 	var users []models.User
-
 	database.DB.Find(&users)
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
 }
 
 func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	email := vars["email"]
 	var currentUser models.User
 
-	result := database.DB.Where("email = ?", email).First(&currentUser)
+	query := fmt.Sprintf("SELECT * FROM users WHERE email = '%s' LIMIT 1", email)
+	result := database.DB.Raw(query).Scan(&currentUser)
 
 	if result.Error != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -37,12 +37,12 @@ func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
-	googleId := vars["google_id"]
+	googleID := vars["google_id"]
 	var currentUser models.User
 
-	result := database.DB.Where("email = ?", googleId).First(&currentUser)
+	query := fmt.Sprintf("SELECT * FROM users WHERE google_id = '%s' LIMIT 1", googleID)
+	result := database.DB.Raw(query).Scan(&currentUser)
 
 	if result.Error != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -53,38 +53,45 @@ func GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserById(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	id := vars["id"]
 	var currentUser models.User
-	database.DB.First(&currentUser, id)
+
+	query := fmt.Sprintf("SELECT * FROM users WHERE id = %s LIMIT 1", id)
+	result := database.DB.Raw(query).Scan(&currentUser)
+
+	if result.Error != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
 
 	utils.SendResponse(w, http.StatusOK, &currentUser, nil, "")
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("DEALLOCATE ALL")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Unable to read request body", http.StatusBadRequest)
 		return
 	}
+
 	var newUser models.User
-
-	r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-	err = json.NewDecoder(r.Body).Decode(&newUser)
+	err = json.Unmarshal(body, &newUser)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	query := `
-    INSERT INTO users (username, firstname, lastname, email, profile_picture, background_picture, followers, following, locale, google_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`
-	result := database.DB.Exec(query, newUser.Username, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.ProfilePicture, newUser.BackgroundPicture, newUser.Followers, newUser.Following, newUser.Locale, newUser.GoogleID)
+	query := fmt.Sprintf(`
+		INSERT INTO users (username, firstname, lastname, email, profile_picture, background_picture, followers, following, locale, google_id)
+		VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, '%s', '%s')
+	`,
+		newUser.Username, newUser.Firstname, newUser.Lastname, newUser.Email,
+		newUser.ProfilePicture, newUser.BackgroundPicture,
+		newUser.Followers, newUser.Following, newUser.Locale, *newUser.GoogleID,
+	)
 
+	result := database.DB.Exec(query)
 	if result.Error != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
@@ -94,7 +101,6 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -105,48 +111,51 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var updatedUser models.User
-	r.Body = io.NopCloser(bytes.NewBuffer(body))
-	err = json.NewDecoder(r.Body).Decode(&updatedUser)
+	err = json.Unmarshal(body, &updatedUser)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	var existingUser models.User
-	result := database.DB.First(&existingUser, id)
-	if result.Error != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
+	query := fmt.Sprintf(`
+		UPDATE users
+		SET username = '%s', firstname = '%s', lastname = '%s', email = '%s',
+			profile_picture = '%s', background_picture = '%s', followers = %d,
+			following = %d, locale = '%s', google_id = '%s'
+		WHERE id = %s
+	`,
+		updatedUser.Username, updatedUser.Firstname, updatedUser.Lastname, updatedUser.Email,
+		updatedUser.ProfilePicture, updatedUser.BackgroundPicture,
+		updatedUser.Followers, updatedUser.Following, updatedUser.Locale, *updatedUser.GoogleID, id,
+	)
 
-	result = database.DB.Model(&existingUser).Updates(updatedUser)
+	result := database.DB.Exec(query)
 	if result.Error != nil {
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &existingUser, nil, "")
+	utils.SendResponse(w, http.StatusOK, &updatedUser, nil, "")
 }
 
 func GetSuggestedFriends(w http.ResponseWriter, r *http.Request) {
-	database.DB.Exec("DEALLOCATE ALL")
 	vars := mux.Vars(r)
 	userID := vars["id"]
 
 	var suggestedUsers []models.User
 
-	query := `
-    SELECT * 
-    FROM users 
-    WHERE id != $1 
-    AND id NOT IN (
-        SELECT following_id 
-        FROM followers 
-        WHERE follower_id = $2
-    )
-`
+	query := fmt.Sprintf(`
+		SELECT *
+		FROM users
+		WHERE id != %s
+		AND id NOT IN (
+			SELECT following_id
+			FROM followers
+			WHERE follower_id = %s
+		)
+	`, userID, userID)
 
-	result := database.DB.Raw(query, userID, userID).Scan(&suggestedUsers)
+	result := database.DB.Raw(query).Scan(&suggestedUsers)
 	if result.Error != nil {
 		http.Error(w, "Failed to fetch suggested friends", http.StatusInternalServerError)
 		return

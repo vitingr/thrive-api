@@ -5,6 +5,8 @@ import (
 	"main/http/routes/groups"
 	"main/http/routes/posts"
 	"main/http/routes/users"
+	"main/http/routes/google"
+	"main/http/routes/sso"
 	"net/http"
 
 	"github.com/gorilla/handlers"
@@ -25,6 +27,14 @@ func HandleRequest() {
 	// Post routes
 	postSubrouter := r.PathPrefix("/posts").Subrouter()
 	postRoutes.RegisterPostRoutes(postSubrouter)
+
+	// Google routes
+	googleSubrouter := r.PathPrefix("/google").Subrouter()
+	googleRoutes.RegisterGoogleRoutes(googleSubrouter)
+
+	// SSO routes
+	ssoSubrouter := r.PathPrefix("/sso").Subrouter()
+	ssoRoutes.RegisterSsoRoutes(ssoSubrouter)
 
 	// Apply CORS options
 	corsOptions := handlers.CORS(

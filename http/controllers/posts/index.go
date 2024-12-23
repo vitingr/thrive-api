@@ -20,22 +20,31 @@ func GetAllPosts(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userId := vars["userId"]
 
-	var posts []models.Post
-	if err := database.DB.Where("creator_id != ?", userId).Find(&posts).Error; err != nil {
+	var posts []struct {
+		models.Post
+		IsLikedByUser bool `json:"is_liked_by_user"`
+	}
+
+	query := `
+		SELECT 
+			p.*,
+			CASE 
+				WHEN l.id IS NOT NULL THEN true 
+				ELSE false 
+			END AS is_liked_by_user
+		FROM posts p
+		LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = ?
+		WHERE p.creator_id != ?
+	`
+
+	if err := database.DB.Raw(query, userId, userId).Scan(&posts).Error; err != nil {
 		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
 		return
 	}
 
-	for i := range posts {
-		if err := database.DB.Where("id = ?", posts[i].CreatorId).First(&posts[i].Creator).Error; err != nil {
-			http.Error(w, "Error fetching post creator", http.StatusInternalServerError)
-			return
-		}
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)
-} 
+}
 
 func GetMyPosts(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -62,8 +71,61 @@ func GetPostsByLanguage(w http.ResponseWriter, r *http.Request) {
 	userId := vars["userId"]
 	locale := vars["locale"]
 
-	var posts []models.Post
-	if err := database.DB.Where("creator_id != ? AND locale = ?", userId, locale).Find(&posts).Error; err != nil {
+	query := `
+		SELECT 
+			p.*, 
+			CASE 
+				WHEN l.id IS NOT NULL THEN true 
+				ELSE false 
+			END AS is_liked_by_user
+		FROM posts p
+		LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = ?
+		WHERE p.creator_id != ? AND p.locale = ?
+	`
+
+	var posts []struct {
+		models.Post
+		IsLikedByUser bool `json:"is_liked_by_user"`
+	}
+
+	if err := database.DB.Raw(query, userId, userId, locale).Scan(&posts).Error; err != nil {
+		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
+		return
+	}
+
+	for i := range posts {
+		if err := database.DB.Where("id = ?", posts[i].CreatorId).First(&posts[i].Creator).Error; err != nil {
+			http.Error(w, "Error fetching post creator", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	utils.SendResponse(w, http.StatusOK, &posts, nil, "")
+}
+
+func GetPostsById(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := vars["userId"]
+	postId := vars["postId"]
+
+	query := `
+		SELECT 
+			p.*, 
+			CASE 
+				WHEN l.id IS NOT NULL THEN true 
+				ELSE false 
+			END AS is_liked_by_user
+		FROM posts p
+		LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = ?
+		WHERE p.creator_id != ? AND p.id = ?
+	`
+
+	var posts []struct {
+		models.Post
+		IsLikedByUser bool `json:"is_liked_by_user"`
+	}
+
+	if err := database.DB.Raw(query, userId, userId, postId).Scan(&posts).Error; err != nil {
 		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
 		return
 	}

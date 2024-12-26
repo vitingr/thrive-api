@@ -1,14 +1,15 @@
 package googleRoutes
 
 import (
-	"github.com/gorilla/mux"
 	"main/http/controllers/google"
 	"main/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterGoogleRoutes(r *mux.Router) {
-	r.Use(middleware.ContetTypeMiddleware)
+func RegisterGoogleRoutes(r *gin.RouterGroup) {
+	r.Use(middleware.ContentTypeMiddleware())
 
-	r.HandleFunc("", controllers.CreateUser).Methods("POST")
-	r.HandleFunc("/get-user-by-google-id/{google_id}", controllers.GetUserByGoogleID).Methods("GET")
+	r.POST("", controllers.CreateUser)
+	r.GET("/get-user-by-google-id/:google_id", controllers.GetUserByGoogleID)
 }

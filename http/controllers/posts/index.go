@@ -1,24 +1,16 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/gorilla/mux"
-	"io"
 	"main/database"
 	"main/models"
 	"main/utils/response"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func Home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Thrive default API route")
-	fmt.Println("testando")
-}
-
-func GetAllPosts(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
+func GetAllPosts(c *gin.Context) {
+	userId := c.Param("userId")
 
 	var posts []struct {
 		models.Post
@@ -38,38 +30,35 @@ func GetAllPosts(w http.ResponseWriter, r *http.Request) {
 	`
 
 	if err := database.DB.Raw(query, userId, userId).Scan(&posts).Error; err != nil {
-		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error fetching posts")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(posts)
+	utils.SendGinResponse(c, http.StatusOK, posts, nil, "")
 }
 
-func GetMyPosts(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
+func GetMyPosts(c *gin.Context) {
+	userId := c.Param("userId")
 
 	var posts []models.Post
 	if err := database.DB.Where("creator_id = ?", userId).Find(&posts).Error; err != nil {
-		http.Error(w, "Error fetching your posts", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error fetching your posts")
 		return
 	}
 
 	for i := range posts {
 		if err := database.DB.Where("id = ?", posts[i].CreatorId).First(&posts[i].Creator).Error; err != nil {
-			http.Error(w, "Error fetching post creator", http.StatusInternalServerError)
+			utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error fetching post creator")
 			return
 		}
 	}
 
-	utils.SendResponse(w, http.StatusOK, &posts, nil, "")
+	utils.SendGinResponse(c, http.StatusOK, posts, nil, "")
 }
 
-func GetPostsByLanguage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
-	locale := vars["locale"]
+func GetPostsByLanguage(c *gin.Context) {
+	userId := c.Param("userId")
+	locale := c.Param("locale")
 
 	query := `
 		SELECT 
@@ -89,24 +78,23 @@ func GetPostsByLanguage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := database.DB.Raw(query, userId, userId, locale).Scan(&posts).Error; err != nil {
-		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error fetching posts")
 		return
 	}
 
 	for i := range posts {
 		if err := database.DB.Where("id = ?", posts[i].CreatorId).First(&posts[i].Creator).Error; err != nil {
-			http.Error(w, "Error fetching post creator", http.StatusInternalServerError)
+			utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error fetching post creator")
 			return
 		}
 	}
 
-	utils.SendResponse(w, http.StatusOK, &posts, nil, "")
+	utils.SendGinResponse(c, http.StatusOK, posts, nil, "")
 }
 
-func GetPostsById(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
-	postId := vars["postId"]
+func GetPostsById(c *gin.Context) {
+	userId := c.Param("userId")
+	postId := c.Param("postId")
 
 	query := `
 		SELECT 
@@ -126,139 +114,123 @@ func GetPostsById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := database.DB.Raw(query, userId, userId, postId).Scan(&posts).Error; err != nil {
-		http.Error(w, "Error fetching posts", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error fetching posts")
 		return
 	}
 
 	for i := range posts {
 		if err := database.DB.Where("id = ?", posts[i].CreatorId).First(&posts[i].Creator).Error; err != nil {
-			http.Error(w, "Error fetching post creator", http.StatusInternalServerError)
+			utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error fetching post creator")
 			return
 		}
 	}
 
-	utils.SendResponse(w, http.StatusOK, &posts, nil, "")
+	utils.SendGinResponse(c, http.StatusOK, posts, nil, "")
 }
 
-func CreatePost(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Unable to read request body", http.StatusBadRequest)
-		return
-	}
-
+func CreatePost(c *gin.Context) {
 	var newPost models.Post
-	err = json.Unmarshal(body, &newPost)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&newPost); err != nil {
+		utils.SendGinResponse(c, http.StatusBadRequest, nil, nil, "Invalid JSON")
 		return
 	}
 
 	if err := database.DB.Create(&newPost).Error; err != nil {
-		http.Error(w, "Failed to create post", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Failed to create post")
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &newPost, nil, "")
+	utils.SendGinResponse(c, http.StatusCreated, newPost, nil, "")
 }
 
-func LikePost(w http.ResponseWriter, r *http.Request) {
+func LikePost(c *gin.Context) {
 	var payload struct {
 		UserID int `json:"userId"`
 		PostID int `json:"postId"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
-	}
-
-	body, _ := io.ReadAll(r.Body)
-	fmt.Println("Raw Request Body:", string(body))
-
-	if payload.UserID == 0 || payload.PostID == 0 {
-		http.Error(w, "Missing userId or postId", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.SendGinResponse(c, http.StatusBadRequest, nil, nil, "Invalid request payload")
 		return
 	}
 
 	var post models.Post
 	if err := database.DB.Where("id = ?", payload.PostID).First(&post).Error; err != nil {
-		http.Error(w, "Post not found", http.StatusNotFound)
+		utils.SendGinResponse(c, http.StatusNotFound, nil, nil, "Post not found")
 		return
 	}
 
 	var existingLike models.Like
 	if err := database.DB.Where("user_id = ? AND post_id = ?", payload.UserID, payload.PostID).First(&existingLike).Error; err == nil {
-		http.Error(w, "User has already liked this post", http.StatusBadRequest)
+		utils.SendGinResponse(c, http.StatusBadRequest, nil, nil, "User has already liked this post")
 		return
 	}
 
 	like := models.Like{UserId: payload.UserID, PostId: payload.PostID}
 	if err := database.DB.Create(&like).Error; err != nil {
-		http.Error(w, "Failed to like post", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Failed to like post")
 		return
 	}
 
 	if err := database.DB.Model(&post).Update("number_likes", post.NumberLikes+1).Error; err != nil {
-		http.Error(w, "Failed to update post like count", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Failed to update post like count")
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &post, nil, "Post liked successfully")
+	utils.SendGinResponse(c, http.StatusOK, post, nil, "Post liked successfully")
 }
 
-func DeslikePost(w http.ResponseWriter, r *http.Request) {
+func DeslikePost(c *gin.Context) {
 	var payload struct {
 		UserID int `json:"userId"`
 		PostID int `json:"postId"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.SendGinResponse(c, http.StatusBadRequest, nil, nil, "Invalid request payload")
 		return
 	}
 
 	var post models.Post
 	if err := database.DB.Where("id = ?", payload.PostID).First(&post).Error; err != nil {
-		http.Error(w, "Post not found", http.StatusNotFound)
+		utils.SendGinResponse(c, http.StatusNotFound, nil, nil, "Post not found")
 		return
 	}
 
 	var existingLike models.Like
 	if err := database.DB.Where("user_id = ? AND post_id = ?", payload.UserID, payload.PostID).First(&existingLike).Error; err != nil {
-		http.Error(w, "User has not liked this post", http.StatusBadRequest)
+		utils.SendGinResponse(c, http.StatusBadRequest, nil, nil, "User has not liked this post")
 		return
 	}
 
 	if err := database.DB.Delete(&existingLike).Error; err != nil {
-		http.Error(w, "Failed to remove like", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Failed to remove like")
 		return
 	}
 
 	if post.NumberLikes > 0 {
 		if err := database.DB.Model(&post).Update("number_likes", post.NumberLikes-1).Error; err != nil {
-			http.Error(w, "Failed to update post like count", http.StatusInternalServerError)
+			utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Failed to update post like count")
 			return
 		}
 	}
 
-	utils.SendResponse(w, http.StatusOK, &post, nil, "Post disliked successfully")
+	utils.SendGinResponse(c, http.StatusOK, post, nil, "Post disliked successfully")
 }
 
-func HasUserLikedPost(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
-	postId := vars["postId"]
+func HasUserLikedPost(c *gin.Context) {
+	userId := c.Param("userId")
+	postId := c.Param("postId")
 
 	var like models.Like
 	if err := database.DB.Where("user_id = ? AND post_id = ?", userId, postId).First(&like).Error; err != nil {
 		if err.Error() == "record not found" {
-			utils.SendResponse(w, http.StatusOK, map[string]bool{"liked": false}, nil, "")
+			utils.SendGinResponse(c, http.StatusOK, map[string]bool{"liked": false}, nil, "")
 			return
 		}
-		http.Error(w, "Error checking like status", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Error checking like status")
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, map[string]bool{"liked": true}, nil, "")
+	utils.SendGinResponse(c, http.StatusOK, map[string]bool{"liked": true}, nil, "")
 }

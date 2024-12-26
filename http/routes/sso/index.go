@@ -1,13 +1,14 @@
 package ssoRoutes
 
 import (
-	"github.com/gorilla/mux"
 	"main/http/controllers/sso"
 	"main/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterSsoRoutes(r *mux.Router) {
-	r.Use(middleware.ContetTypeMiddleware)
+func RegisterSsoRoutes(r *gin.RouterGroup) {
+	r.Use(middleware.ContentTypeMiddleware())
 
-	r.HandleFunc("", controllers.CreateUser).Methods("POST")
+	r.POST("", controllers.CreateUser)
 }

@@ -1,61 +1,53 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"main/database"
 	"main/models"
 	"main/utils/response"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func GetUserByGoogleID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	googleID := vars["google_id"]
+func GetUserByGoogleID(c *gin.Context) {
+	googleID := c.Param("google_id")
+
 	var currentUser models.User
 
-	query := fmt.Sprintf("SELECT * FROM users WHERE google_id = '%s' LIMIT 1", googleID)
-	result := database.DB.Raw(query).Scan(&currentUser)
+	query := "SELECT * FROM users WHERE google_id = ? LIMIT 1"
+	result := database.DB.Raw(query, googleID).Scan(&currentUser)
 
 	if result.Error != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, currentUser, nil, "")
+	utils.SendGinResponse(c, http.StatusOK, currentUser, nil, "")
 }
 
-func CreateUser(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Unable to read request body", http.StatusBadRequest)
-		return
-	}
-
+func CreateUser(c *gin.Context) {
 	var newUser models.User
-	err = json.Unmarshal(body, &newUser)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+
+	if err := c.ShouldBindJSON(&newUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	query := fmt.Sprintf(`
+	query := `
 		INSERT INTO users (username, firstname, lastname, email, profile_picture, background_picture, followers, following, locale, google_id)
-		VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, '%s', '%s')
-	`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	result := database.DB.Exec(query,
 		newUser.Username, newUser.Firstname, newUser.Lastname, newUser.Email,
 		newUser.ProfilePicture, newUser.BackgroundPicture,
 		newUser.Followers, newUser.Following, newUser.Locale, newUser.GoogleID,
 	)
 
-	result := database.DB.Exec(query)
 	if result.Error != nil {
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &newUser, nil, "")
+	utils.SendGinResponse(c, http.StatusOK, &newUser, nil, "")
 }

@@ -1,8 +1,7 @@
 package utils
 
 import (
-	"encoding/json"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
 type APIResponse struct {
@@ -11,16 +10,12 @@ type APIResponse struct {
 	Error string      `json:"error,omitempty"`
 }
 
-func SendResponse(w http.ResponseWriter, statusCode int, data interface{}, meta interface{}, errMessage string) {
+func SendGinResponse(c *gin.Context, statusCode int, data interface{}, meta interface{}, errMessage string) {
 	response := APIResponse{
 		Data:  data,
 		Meta:  meta,
 		Error: errMessage,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
+	c.JSON(statusCode, response)
 }

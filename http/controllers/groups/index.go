@@ -1,53 +1,46 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"main/database"
 	"main/models"
+	"main/utils/response"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func GetAllGroups(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Buscando todos os grupos...")
+func GetAllGroups(c *gin.Context) {
 	var groups []models.Group
 
 	query := "SELECT * FROM groups"
 	result := database.DB.Raw(query).Scan(&groups)
 	if result.Error != nil {
-		http.Error(w, "Failed to fetch groups", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Failed to fetch groups")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(groups)
+	utils.SendGinResponse(c, http.StatusOK, groups, nil, "")
 }
 
-func GetGroupById(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Buscando grupo por ID...")
-	vars := mux.Vars(r)
-	id := vars["id"]
+func GetGroupById(c *gin.Context) {
+	id := c.Param("id")
 
 	var currentGroup models.Group
 	query := fmt.Sprintf("SELECT * FROM groups WHERE id = %s LIMIT 1", id)
 	result := database.DB.Raw(query).Scan(&currentGroup)
 	if result.Error != nil {
-		http.Error(w, "Group not found", http.StatusNotFound)
+		utils.SendGinResponse(c, http.StatusNotFound, nil, nil, "Group not found")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(currentGroup)
+	utils.SendGinResponse(c, http.StatusOK, currentGroup, nil, "")
 }
 
-func CreateGroup(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Criando novo grupo...")
+func CreateGroup(c *gin.Context) {
 	var newGroup models.Group
-	err := json.NewDecoder(r.Body).Decode(&newGroup)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&newGroup); err != nil {
+		utils.SendGinResponse(c, http.StatusBadRequest, nil, nil, "Invalid JSON")
 		return
 	}
 
@@ -62,10 +55,9 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 	result := database.DB.Exec(query)
 	if result.Error != nil {
-		http.Error(w, "Failed to create group", http.StatusInternalServerError)
+		utils.SendGinResponse(c, http.StatusInternalServerError, nil, nil, "Failed to create group")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(newGroup)
+	utils.SendGinResponse(c, http.StatusCreated, newGroup, nil, "")
 }

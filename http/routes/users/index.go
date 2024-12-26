@@ -1,17 +1,17 @@
 package userRoutes
 
 import (
-	"github.com/gorilla/mux"
-	"main/http/controllers/users"
+	"github.com/gin-gonic/gin"
+	users "main/http/controllers/users"
 	"main/middleware"
 )
 
-func RegisterUserRoutes(r *mux.Router) {
-	r.Use(middleware.ContetTypeMiddleware)
+func RegisterUserRoutes(r *gin.RouterGroup) {
+	r.Use(middleware.ContentTypeMiddleware())
 
-	r.HandleFunc("", controllers.GetAllUsers).Methods("GET")
-	r.HandleFunc("/get-user-by-email/{email}", controllers.GetUserByEmail).Methods("GET")
-	r.HandleFunc("/get-user-by-id/{id}", controllers.GetUserById).Methods("GET")
-	r.HandleFunc("/update-user/{id}", controllers.UpdateUser).Methods("PUT")
-	r.HandleFunc("/get-suggest-friends/{id}", controllers.GetSuggestedFriends).Methods("GET")
+	r.GET("", users.GetAllUsers)
+	r.GET("/get-user-by-email/:email", users.GetUserByEmail)
+	r.GET("/get-user-by-id/:id", users.GetUserById)
+	r.PUT("/update-user/:id", users.UpdateUser)
+	r.GET("/get-suggest-friends/:id", users.GetSuggestedFriends)
 }

@@ -1,15 +1,15 @@
 package groupRoutes
 
 import (
-	"github.com/gorilla/mux"
-	"main/http/controllers/groups"
+	"github.com/gin-gonic/gin"
+	groups "main/http/controllers/groups"
 	"main/middleware"
 )
 
-func RegisterGroupRoutes(r *mux.Router) {
-	r.Use(middleware.ContetTypeMiddleware)
+func RegisterGroupRoutes(r *gin.RouterGroup) {
+	r.Use(middleware.ContentTypeMiddleware())
 
-	r.HandleFunc("", controllers.GetAllGroups).Methods("GET")
-	r.HandleFunc("", controllers.CreateGroup).Methods("POST")
-	r.HandleFunc("/get-group-by-id/{id}", controllers.GetGroupById).Methods("GET")
+	r.GET("", groups.GetAllGroups)
+	r.POST("", groups.CreateGroup)
+	r.GET("/get-group-by-id/:id   ", groups.GetGroupById)
 }

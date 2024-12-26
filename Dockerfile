@@ -1,4 +1,3 @@
-# Etapa 1: Build
 FROM golang:1.21.4 AS builder
 
 WORKDIR /app
@@ -13,10 +12,18 @@ RUN go build -o main .
 
 FROM alpine:latest
 
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
 COPY --from=builder /app/main .
 
+COPY .env .env
+
+RUN ls -l /app
+
+RUN chmod +x /app/main
+
 EXPOSE 8080
 
-CMD ["./main"]
+CMD ["/app/main"]

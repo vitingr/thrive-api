@@ -1,43 +1,37 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"main/database"
 	"main/models"
 	"main/utils/response"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
- 
-func CreateUser(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Unable to read request body", http.StatusBadRequest)
-		return
-	}
 
+func CreateUser(c *gin.Context) {
 	var newUser models.User
-	err = json.Unmarshal(body, &newUser)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+
+	if err := c.ShouldBindJSON(&newUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	query := fmt.Sprintf(`
+	query := `
 		INSERT INTO users (username, firstname, lastname, email, profile_picture, background_picture, followers, following, locale, password)
-		VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, '%s', '%s')
-	`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	result := database.DB.Exec(query,
 		newUser.Username, newUser.Firstname, newUser.Lastname, newUser.Email,
 		newUser.ProfilePicture, newUser.BackgroundPicture,
 		newUser.Followers, newUser.Following, newUser.Locale, newUser.Password,
 	)
 
-	result := database.DB.Exec(query)
 	if result.Error != nil {
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &newUser, nil, "")
+	utils.SendGinResponse(c, http.StatusOK, &newUser, nil, "")
 }

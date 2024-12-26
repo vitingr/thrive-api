@@ -1,12 +1,10 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
-func Health(w http.ResponseWriter, r *http.Request) {
-		status := map[string]string{"status": "on"}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(status)
+func Health(c *gin.Context) {
+	status := map[string]string{"status": "on"}
+	c.JSON(200, status)
 }

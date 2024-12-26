@@ -1,10 +1,14 @@
 package healthRoutes
 
 import (
-	"github.com/gorilla/mux"
 	"main/http/controllers/health"
+	"main/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterHealthRoutes(r *mux.Router) {
-	r.HandleFunc("", controllers.Health).Methods("GET")
+func RegisterHealthRoutes(r *gin.RouterGroup) {
+	r.Use(middleware.ContentTypeMiddleware())
+
+	r.GET("", controllers.Health)
 }

@@ -1,0 +1,7 @@
+global:
+  scrape_interval: "15s"
+
+scrape_configs:
+  - job_name: "thrive-api"
+    static_configs:
+      - targets: ['thrive-api:8080']

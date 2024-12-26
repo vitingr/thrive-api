@@ -1,71 +1,58 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"main/database"
 	"main/models"
-	"main/utils/response"
+	response "main/utils/response"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func GetAllUsers(w http.ResponseWriter, r *http.Request) {
+func GetAllUsers(c *gin.Context) {
 	var users []models.User
 	database.DB.Find(&users)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	c.JSON(http.StatusOK, users)
 }
 
-func GetUserByEmail(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	email := vars["email"]
+func GetUserByEmail(c *gin.Context) {
+	email := c.Param("email")
 	var currentUser models.User
 
 	query := fmt.Sprintf("SELECT * FROM users WHERE email = '%s' LIMIT 1", email)
 	result := database.DB.Raw(query).Scan(&currentUser)
 
 	if result.Error != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, currentUser, nil, "")
+	response.SendGinResponse(c, http.StatusOK, currentUser, nil, "")
 }
 
-func GetUserById(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+func GetUserById(c *gin.Context) {
+	id := c.Param("id")
 	var currentUser models.User
 
 	query := fmt.Sprintf("SELECT * FROM users WHERE id = %s LIMIT 1", id)
 	result := database.DB.Raw(query).Scan(&currentUser)
 
 	if result.Error != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &currentUser, nil, "")
+	response.SendGinResponse(c, http.StatusOK, &currentUser, nil, "")
 }
 
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Unable to read request body", http.StatusBadRequest)
-		return
-	}
+func UpdateUser(c *gin.Context) {
+	id := c.Param("id")
 
 	var updatedUser models.User
-	err = json.Unmarshal(body, &updatedUser)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&updatedUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
@@ -83,16 +70,15 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	result := database.DB.Exec(query)
 	if result.Error != nil {
-		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, &updatedUser, nil, "")
+	response.SendGinResponse(c, http.StatusOK, &updatedUser, nil, "")
 }
 
-func GetSuggestedFriends(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID := vars["id"]
+func GetSuggestedFriends(c *gin.Context) {
+	userID := c.Param("id")
 
 	var suggestedUsers []models.User
 
@@ -109,9 +95,9 @@ func GetSuggestedFriends(w http.ResponseWriter, r *http.Request) {
 
 	result := database.DB.Raw(query).Scan(&suggestedUsers)
 	if result.Error != nil {
-		http.Error(w, "Failed to fetch suggested friends", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch suggested friends"})
 		return
 	}
 
-	utils.SendResponse(w, http.StatusOK, suggestedUsers, nil, "")
+	response.SendGinResponse(c, http.StatusOK, suggestedUsers, nil, "")
 }

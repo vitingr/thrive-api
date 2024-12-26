@@ -8,41 +8,34 @@ import (
 	"main/http/routes/posts"
 	"main/http/routes/sso"
 	"main/http/routes/users"
-	"net/http"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func HandleRequest() {
-	r := mux.NewRouter()
+func HandleRequest(r *gin.Engine) {
+	userGroup := r.Group("/users"); {
+		userRoutes.RegisterUserRoutes(userGroup)
+	}
 
-	userSubrouter := r.PathPrefix("/users").Subrouter()
-	userRoutes.RegisterUserRoutes(userSubrouter)
+	groupGroup := r.Group("/groups"); {
+		groupRoutes.RegisterGroupRoutes(groupGroup)
+	}
 
-	groupSubrouter := r.PathPrefix("/groups").Subrouter()
-	groupRoutes.RegisterGroupRoutes(groupSubrouter)
+	postGroup := r.Group("/posts"); {
+		postRoutes.RegisterPostRoutes(postGroup)
+	}
 
-	postSubrouter := r.PathPrefix("/posts").Subrouter()
-	postRoutes.RegisterPostRoutes(postSubrouter)
+	googleGroup := r.Group("/google"); {
+		googleRoutes.RegisterGoogleRoutes(googleGroup)
+	}
 
-	googleSubrouter := r.PathPrefix("/google").Subrouter()
-	googleRoutes.RegisterGoogleRoutes(googleSubrouter)
+	ssoGroup := r.Group("/sso"); {
+		ssoRoutes.RegisterSsoRoutes(ssoGroup)
+	}
 
-	ssoSubrouter := r.PathPrefix("/sso").Subrouter()
-	ssoRoutes.RegisterSsoRoutes(ssoSubrouter)
+	healthGroup := r.Group("/health"); {
+		healthRoutes.RegisterHealthRoutes(healthGroup)
+	}
 
-	healthSubrouter := r.PathPrefix("/health").Subrouter()
-	healthRoutes.RegisterHealthRoutes(healthSubrouter)
-
-	// Apply CORS options
-	corsOptions := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
-	)
-
-	handler := corsOptions(r)
-
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	log.Fatal(r.Run(":8080"))
 }

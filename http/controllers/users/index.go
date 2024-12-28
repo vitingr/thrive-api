@@ -237,3 +237,44 @@ func RemoveFriendRequest(c *gin.Context) {
 
 	response.SendGinResponse(c, http.StatusOK, nil, nil, "")
 }
+
+func GetPendingFriendRequests(c *gin.Context) {
+	userID := c.Param("userId")
+
+	userIDInt, err := strconv.Atoi(userID)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid userId"})
+		return
+	}
+
+	var pendingRequests []struct {
+		ID                uint   `json:"id"`
+		Username          string `json:"username"`
+		Firstname         string `json:"firstname"`
+		Lastname          string `json:"lastname"`
+		Email             string `json:"email"`
+		ProfilePicture    string `json:"profile_picture"`
+		BackgroundPicture string `json:"background_picture"`
+	}
+
+	query := `
+        SELECT 
+            u.id,
+            u.username,
+            u.firstname,
+            u.lastname,
+            u.email,
+            u.profile_picture,
+            u.background_picture
+        FROM followers f
+        JOIN users u ON f.follower_id = u.id
+        WHERE f.following_id = ? AND f.status = 'pending'
+    `
+
+	if err := database.DB.Raw(query, userIDInt).Scan(&pendingRequests).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to retrieve pending friend requests"})
+		return
+	}
+
+	response.SendGinResponse(c, http.StatusOK, pendingRequests, nil, "")
+}

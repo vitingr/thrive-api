@@ -13,6 +13,7 @@ type User struct {
 	Locale            string `json:"locale"`
 	GoogleID          string `json:"google_id,omitempty"`
 	Password          string `json:"password,omitempty"`
+	Bio               string `json:"bio,omitempty"`
 
 	Posts         []Post     `gorm:"foreignKey:CreatorId"`
 	Likes         []Like     `gorm:"foreignKey:UserId"`

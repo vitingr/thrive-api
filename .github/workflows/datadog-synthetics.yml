@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Run Datadog Synthetic tests
-      uses: DataDog/synthetics-ci-github-action@87b505388a22005bb8013481e3f73a367b9a53eb
+      uses: DataDog/synthetics-ci-github-action@09f14582d4356e2d1ce9c440a496ef5495b3316f
       with:
         api_key: ${{secrets.DD_API_KEY}}
         app_key: ${{secrets.DD_APP_KEY}}

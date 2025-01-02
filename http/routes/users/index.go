@@ -17,6 +17,6 @@ func RegisterUserRoutes(r *gin.RouterGroup) {
 	r.POST("/send-friend-request/:userId/:friendId", users.SendFriendRequest)
 	r.POST("/confirm-friend-request/:userId/:friendId", users.ConfirmFriendRequest)
 	r.POST("/cancel-friend-request/:userId/:friendId", users.RemoveFriendRequest)
-	r.GET("/get-friends/:userId", users.GetAllFriends)
+	r.GET("/get-friends/:userId", users.GetAllFriends)  
 	r.GET("/get-pending-friends/:userId", users.GetPendingFriendRequests)
 }
